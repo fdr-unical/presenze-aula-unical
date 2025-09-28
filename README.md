@@ -1,4 +1,4 @@
-# Presenze Aula UniCal
+# Presenze Aula Unical
 
 Questa è una mini-app sviluppata in **Streamlit** per generare **QR code dinamici** (rotativi) da collegare a un **Microsoft Form**.  
 L’obiettivo è facilitare la **registrazione delle presenze in aula** in modo sicuro, evitando il riutilizzo di QR statici.
