@@ -14,7 +14,7 @@ st.caption("Genera un QR code dinamico per registrare le presenze tramite Micros
 st.sidebar.header("Impostazioni")
 form_link = st.sidebar.text_input("Link al Microsoft Form", help="Incolla qui il link del tuo Form di presenze.")
 interval_s = st.sidebar.number_input("Intervallo rotazione (secondi)", min_value=10, max_value=300, value=60, step=10)
-utc_time = st.sidebar.checkbox("Usa orario UTC", value=False)
+now = datetime.now(timezone.utc)
 
 def floor_time_to_interval(t: datetime, seconds: int) -> datetime:
     epoch = int(t.timestamp())
