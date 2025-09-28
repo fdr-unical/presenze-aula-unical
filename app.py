@@ -55,9 +55,9 @@ if form_link:
     st.text_input("URL con token", value=target_url, disabled=True)
     st.code(target_url, language="text")
     
-    # Countdown visivo
-    elapsed = int((now - now_floored).total_seconds())
-    remaining = int(interval_s - elapsed)
+    # Countdown visivo corretto
+    epoch = int(now.timestamp())
+    remaining = interval_s - (epoch % interval_s)
     st.progress(remaining / interval_s)
     st.caption(f"Il QR si aggiornerà tra {remaining} secondi.")
     
