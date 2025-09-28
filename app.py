@@ -8,7 +8,7 @@ import io
 
 st.set_page_config(page_title="Presenze Aula Unical", layout="centered")
 
-st.title("Presenze Aula UniCal")
+st.title("Presenze Aula Unical")
 st.caption("Genera un QR code dinamico per registrare le presenze tramite Microsoft Forms.")
 
 st.sidebar.header("Impostazioni")
