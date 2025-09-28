@@ -5,6 +5,7 @@ import streamlit as st
 import qrcode
 from qrcode.image.pil import PilImage
 import io
+import time
 
 st.set_page_config(page_title="Presenze Aula Unical", layout="centered")
 
@@ -33,30 +34,38 @@ if form_link:
     now_floored = floor_time_to_interval(now, int(interval_s))
     token = now_floored.strftime("%Y%m%d%H%M%S")
     target_url = add_or_replace_param(form_link.strip(), "token", token)
-    
-    try:
-        st.autorefresh(interval=interval_s*1000, key="auto_refresh")
-    except Exception:
-        pass
-    
+
     st.subheader("QR attuale")
     qr = qrcode.QRCode(box_size=10, border=2)
     qr.add_data(target_url)
     qr.make(fit=True)
     img: PilImage = qr.make_image(fill_color="black", back_color="white")
-    
+
     # Convert to bytes for Streamlit
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     st.image(buf.getvalue(), caption="Scansiona per registrare la presenza", use_container_width=True)
-    
+
     st.download_button("Scarica QR", data=buf.getvalue(), file_name="qrcode_presenze.png", mime="image/png")
-    
+
     # Calcolo countdown
     seconds_passed = int(now.timestamp()) % int(interval_s)
     seconds_left = int(interval_s) - seconds_passed
-    
+
     st.info(f"Token attuale: {token} · Intervallo: {interval_s}s")
-    st.write(f"⏳ Il QR si aggiornerà tra **{seconds_left} secondi**.")
+
+    # Countdown dinamico con barra
+    progress_bar = st.progress(0, text=f"⏳ Il QR si aggiornerà tra {seconds_left} secondi")
+
+    for i in range(seconds_left, 0, -1):
+        progress_bar.progress(
+            (seconds_left - i + 1) / seconds_left,
+            text=f"⏳ Il QR si aggiornerà tra {i} secondi"
+        )
+        time.sleep(1)
+
+    # Al termine, ricarica per rigenerare il QR
+    st.rerun()
+
 else:
     st.warning("Incolla nella sidebar il link del tuo Form per generare il QR.")
