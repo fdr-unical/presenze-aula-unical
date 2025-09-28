@@ -52,9 +52,11 @@ if form_link:
     
     st.download_button("Scarica QR", data=buf.getvalue(), file_name="qrcode_presenze.png", mime="image/png")
     
-    st.text_input("URL con token", value=target_url, disabled=True)
-    st.code(target_url, language="text")
+    # Calcolo countdown
+    seconds_passed = int(now.timestamp()) % int(interval_s)
+    seconds_left = int(interval_s) - seconds_passed
     
     st.info(f"Token attuale: {token} · Intervallo: {interval_s}s")
+    st.write(f"⏳ Il QR si aggiornerà tra **{seconds_left} secondi**.")
 else:
     st.warning("Incolla nella sidebar il link del tuo Form per generare il QR.")
