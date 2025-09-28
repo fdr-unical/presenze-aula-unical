@@ -54,7 +54,7 @@ if form_link:
     st.write(f"⏳ Il QR si aggiornerà tra **{seconds_left} secondi**.")
 
     # 🔄 refresh automatico ogni secondo
-    st.experimental_rerun()
+    st.rerun()
     time.sleep(1)
 
 else:
