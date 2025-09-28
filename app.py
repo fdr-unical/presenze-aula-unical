@@ -1,6 +1,5 @@
 # app.py - Presenze Aula Unical (genera QR che punta al validatore check_token.py)
 from datetime import datetime, timezone
-from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
 import streamlit as st
 import qrcode
 from qrcode.image.pil import PilImage
@@ -22,28 +21,21 @@ interval_s = st.sidebar.number_input(
     min_value=10, max_value=300, value=60, step=10
 )
 
-# URL base del validatore (check_token.py deve girare sullo stesso server)
-VALIDATOR_URL = "http://localhost:8501/check_token"
+# URL base del validatore (deve essere accessibile agli studenti)
+VALIDATOR_URL = "http://localhost:8501/check_token"  # cambia con l'IP o dominio pubblico
 
 def floor_time_to_interval(t: datetime, seconds: int) -> datetime:
     epoch = int(t.timestamp())
     floored = epoch - (epoch % seconds)
     return datetime.fromtimestamp(floored, tz=t.tzinfo)
 
-def add_or_replace_param(url: str, key: str, value: str) -> str:
-    parts = urlparse(url)
-    qs = dict(parse_qsl(parts.query, keep_blank_values=True))
-    qs[key] = value
-    new_query = urlencode(qs)
-    return urlunparse((parts.scheme, parts.netloc, parts.path, parts.params, new_query, parts.fragment))
-
 if form_link:
     now = datetime.now(timezone.utc)
     now_floored = floor_time_to_interval(now, int(interval_s))
     token = now_floored.strftime("%Y%m%d%H%M%S")
 
-    # Genera URL verso il validatore
-    target_url = add_or_replace_param(VALIDATOR_URL, "token", token)
+    # Costruisco URL con token + form
+    target_url = f"{VALIDATOR_URL}?token={token}&form={form_link.strip()}"
 
     # calcolo countdown
     seconds_passed = int(now.timestamp()) % interval_s
