@@ -1,4 +1,4 @@
-# app.py - Presenze Aula UniCal
+# app.py - Presenze Aula Unical
 from datetime import datetime, timezone
 from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
 import streamlit as st
@@ -54,6 +54,12 @@ if form_link:
     
     st.text_input("URL con token", value=target_url, disabled=True)
     st.code(target_url, language="text")
+    
+    # Countdown visivo
+    elapsed = int((now - now_floored).total_seconds())
+    remaining = int(interval_s - elapsed)
+    st.progress(remaining / interval_s)
+    st.caption(f"Il QR si aggiornerà tra {remaining} secondi.")
     
     st.info(f"Token attuale: {token} · Intervallo: {interval_s}s")
 else:
