@@ -5,6 +5,7 @@ import streamlit as st
 import qrcode
 from qrcode.image.pil import PilImage
 import io
+import time
 
 st.set_page_config(page_title="Presenze Aula Unical", layout="centered")
 
@@ -44,9 +45,6 @@ if form_link:
     seconds_passed = int(now.timestamp()) % interval_s
     seconds_left = interval_s - seconds_passed
 
-    # refresh automatico
-    st.autorefresh(interval=interval_s * 1000, key="auto_refresh")
-
     st.subheader("QR attuale")
     placeholder = st.empty()
 
@@ -73,5 +71,10 @@ if form_link:
 
     st.info(f"Token attuale: {token} · Intervallo: {interval_s}s")
     st.write(f"⏳ Il QR si aggiornerà tra **{seconds_left} secondi**.")
+
+    # Trigger refresh manuale
+    time.sleep(1)
+    if seconds_left == 1:  # appena scatta, rigenera tutto
+        st.experimental_rerun()
 else:
     st.warning("Incolla nella sidebar il link del tuo Form per generare il QR.")
