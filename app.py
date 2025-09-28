@@ -6,7 +6,7 @@ import qrcode
 from qrcode.image.pil import PilImage
 import io
 
-st.set_page_config(page_title="Presenze Aula UniCal", layout="centered")
+st.set_page_config(page_title="Presenze Aula Unical", layout="centered")
 
 st.title("Presenze Aula UniCal")
 st.caption("Genera un QR code dinamico per registrare le presenze tramite Microsoft Forms.")
