@@ -1,4 +1,4 @@
-# app.py - Presenze Aula Unical (versione base, con URL pubblico fisso)
+# app.py - Presenze Aula Unical (versione con grace attivo)
 from datetime import datetime, timezone
 import time
 import html
@@ -37,7 +37,14 @@ if "token" in params:
     now = datetime.now(timezone.utc if use_utc else None)
     valid_now = floor_time_to_interval(now, interval_s).strftime("%Y%m%d%H%M%S")
 
-    if token_qp == valid_now and to_qp:
+    # Verifica token attuale o precedente (grace attivo)
+    is_valid = (token_qp == valid_now)
+    if not is_valid:
+        prev = datetime.fromtimestamp(now.timestamp() - interval_s, tz=now.tzinfo)
+        valid_prev = floor_time_to_interval(prev, interval_s).strftime("%Y%m%d%H%M%S")
+        is_valid = (token_qp == valid_prev)
+
+    if is_valid and to_qp:
         st.success("✅ Token valido. Reindirizzamento in corso…")
         st.markdown(f'<meta http-equiv="refresh" content="0; url={html.escape(to_qp)}">', unsafe_allow_html=True)
         st.stop()
