@@ -1,4 +1,4 @@
-# app.py - Presenze Aula Unical (versione con grace attivo)
+# app.py - Presenze Aula Unical (compatibile con Streamlit >=1.50)
 from datetime import datetime, timezone
 import time
 import html
@@ -26,6 +26,9 @@ def make_qr_png(url: str) -> bytes:
     img.save(buf, format="PNG")
     return buf.getvalue()
 
+# ---------------------
+# Modalità Studente
+# ---------------------
 params = st.query_params
 if "token" in params:
     token_qp = params.get("token")
@@ -52,6 +55,9 @@ if "token" in params:
         st.error("⛔ QR scaduto o non valido. Richiedi un nuovo QR.")
         st.stop()
 
+# ---------------------
+# Modalità Docente
+# ---------------------
 st.title("Presenze Aula Unical")
 st.caption("Genera un QR dinamico che porta al tuo Microsoft Form, valido solo per pochi secondi.")
 
@@ -71,14 +77,14 @@ if form_link:
 
     st.subheader("QR attuale")
     png_bytes = make_qr_png(qr_target)
-    st.image(png_bytes, caption="Scansiona per registrare la presenza", use_container_width=True)
+    st.image(png_bytes, caption="Scansiona per registrare la presenza", width="stretch")
 
     seconds_passed = int(now.timestamp()) % interval_s
     seconds_left = interval_s - seconds_passed
-    progress = st.progress(0, text=f"⏳ QR si aggiornerà tra {seconds_left} secondi")
 
+    placeholder = st.empty()
     for i in range(seconds_left, 0, -1):
-        progress.progress((seconds_left - i + 1) / seconds_left, text=f"⏳ QR si aggiornerà tra {i} secondi")
+        placeholder.info(f"⏳ Il QR si aggiornerà tra {i} secondi (token: {token})")
         time.sleep(1)
 
     st.rerun()
