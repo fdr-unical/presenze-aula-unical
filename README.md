@@ -1,52 +1,49 @@
 # Presenze Aula Unical
 
-Questa è una mini-app sviluppata in **Streamlit** per generare **QR code dinamici** (rotativi) da collegare a un **Microsoft Form**.  
-L’obiettivo è facilitare la **registrazione delle presenze in aula** in modo sicuro, evitando il riutilizzo di QR statici.
+App Streamlit per generare **QR code dinamici** con **token a scadenza** e verificare lato server che i QR scaduti **non funzionino**.
 
-## Funzionalità
-- Generazione di QR code che cambia ogni intervallo di tempo (default: 60 secondi).
-- Aggiunta di un token temporale all’URL del Form (`?token=YYYYMMDDhhmmss`).
-- Download del QR code in formato PNG.
-- Interfaccia semplice e pronta per l’uso in aula (proiezione su schermo).
+## Come funziona
 
-## Flusso
-1. Il docente crea un Microsoft Form con i campi: Nome, Cognome, Matricola.
-2. Copia il link del Form e lo incolla nell’app.
-3. L’app genera un QR code rotativo con token.
-4. Gli studenti scansionano il QR e compilano il Form.
-5. Le risposte finiscono direttamente nell’account del docente, insieme al token.
+- **Docente:** genera un QR che punta alla *stessa* app (pagina intermedia).
+- **Studente:** scansiona il QR → la pagina intermedia verifica che il `token` sia valido.
+  - Se valido, **reindirizza** al Microsoft Form.
+  - Se scaduto, mostra **errore**.
 
-## Installazione locale
-1. Clona il repository:
-   ```bash
-   git clone https://github.com/francescoderango/presenze-aula-unical.git
-   cd presenze-aula-unical
-   ```
-2. Installa le dipendenze:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Avvia l’app:
-   ```bash
-   streamlit run app.py
-   ```
+Il token è calcolato come timestamp **"floorato"** all'intervallo (es. 60s → `yyyymmddhhmm00`), così tutti gli studenti vedono lo stesso codice per quel minuto.
+
+## Requisiti
+
+- Python 3.9+
+- Librerie: vedi `requirements.txt`
+
+## Avvio locale
+
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+Apri nel browser: `http://localhost:8501`
+
+### Test locale rapido
+- Inserisci nella sidebar il link al **Microsoft Form**.
+- Imposta `URL intermedio` a `http://localhost:8501/` per i test sullo stesso PC.
+- Abbassa l'intervallo a 10s per vedere il refresh.
+- Prova ad aprire manualmente un URL come:
+  `http://localhost:8501/?token=YYYYMMDDhhmmss&to=https://forms.office.com/...&interval=60&utc=0&grace=1`
 
 ## Deploy su Streamlit Cloud
-Questo progetto è configurato per il deploy diretto su **Streamlit Cloud**.  
-Dopo aver collegato il repository, l’app sarà disponibile online con un link del tipo:
 
-```
-https://presenze-aula-unical.streamlit.app
-```
+1. Carica `app.py` e `requirements.txt` su GitHub.
+2. Vai su Streamlit Cloud → **New app** → seleziona repo/branch/file `app.py` → **Deploy**.
+3. L'URL pubblico (es. `https://presenze-aula-unical.streamlit.app/`) va inserito nella sidebar come **URL intermedio**.
 
-## Demo
-Esempio di tabella esportata da Microsoft Forms con token:
+## Parametri
 
-| Nome e Cognome | Matricola | Corso    | Ora di invio        | Token           |
-|----------------|-----------|----------|---------------------|-----------------|
-| Mario Rossi    | 123456    | Biologia | 28/09/2025 18:45    | 20250928184500 |
-| Anna Bianchi   | 654321    | Biologia | 28/09/2025 18:46    | 20250928184600 |
+- **Intervallo (s):** durata validità token. Es. 60.
+- **UTC:** se attivo, usa l'orario UTC (utile se server e docenti sono in fusi orari diversi).
+- **Tolleranza (grace):** se attivo, accetta anche il token dell'intervallo precedente per evitare rifiuti a cavallo del cambio minuto.
 
----
+## Licenza
 
-© 2025 — Francesco De Rango. Rilasciato con licenza MIT.
+MIT License — vedi `LICENSE`.
