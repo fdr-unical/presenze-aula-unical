@@ -1,24 +1,43 @@
-# app.py - Presenze Aula Unical (compatibile con Streamlit >=1.50)
+# app.py - Presenze Aula Unical (ottimizzato)
 from datetime import datetime, timezone
-import time
 import html
 import io
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import streamlit as st
 import qrcode
 from qrcode.image.pil import PilImage
+import validators
+from streamlit_autorefresh import st_autorefresh
 
+# Configurazione pagina
+st.set_page_config(
+    page_title="Presenze Aula Unical",
+    layout="centered",
+    initial_sidebar_state="expanded"
+)
 
-st.set_page_config(page_title="Presenze Aula Unical", layout="centered")
+# Costanti
+BASE_URL = "https://presenze-aula-unical.streamlit.app/"
+ALLOWED_DOMAINS = ["forms.office.com", "forms.microsoft.com"]
+DEFAULT_INTERVAL = 60
+MIN_INTERVAL = 30
+MAX_INTERVAL = 300
+
+# ---------------------
+# Funzioni Utility
+# ---------------------
 
 def floor_time_to_interval(t: datetime, seconds: int) -> datetime:
+    """Arrotonda un timestamp all'intervallo precedente."""
     epoch = int(t.timestamp())
     floored = epoch - (epoch % seconds)
     return datetime.fromtimestamp(floored, tz=t.tzinfo)
 
+
 def make_qr_png(url: str) -> bytes:
-    qr = qrcode.QRCode(box_size=10, border=2)
+    """Genera un QR code come immagine PNG."""
+    qr = qrcode.QRCode(box_size=10, border=2, error_correction=qrcode.constants.ERROR_CORRECT_L)
     qr.add_data(url)
     qr.make(fit=True)
     img: PilImage = qr.make_image(fill_color="black", back_color="white")
@@ -26,67 +45,202 @@ def make_qr_png(url: str) -> bytes:
     img.save(buf, format="PNG")
     return buf.getvalue()
 
+
+def validate_form_url(url: str) -> bool:
+    """Valida che l'URL sia un Microsoft Form legittimo."""
+    if not url or not validators.url(url):
+        return False
+    
+    parsed = urlparse(url)
+    return any(domain in parsed.netloc for domain in ALLOWED_DOMAINS)
+
+
+def generate_token(timestamp: datetime, interval: int) -> str:
+    """Genera un token temporale univoco."""
+    floored = floor_time_to_interval(timestamp, interval)
+    return floored.strftime("%Y%m%d%H%M%S")
+
+
+def validate_token(token: str, interval: int, use_utc: bool) -> bool:
+    """Valida un token verificando anche il grace period."""
+    if not token:
+        return False
+    
+    now = datetime.now(timezone.utc if use_utc else None)
+    
+    # Token corrente
+    current_token = generate_token(now, interval)
+    if token == current_token:
+        return True
+    
+    # Token precedente (grace period)
+    prev_time = datetime.fromtimestamp(now.timestamp() - interval, tz=now.tzinfo)
+    previous_token = generate_token(prev_time, interval)
+    return token == previous_token
+
+
+def create_qr_url(token: str, form_url: str, interval: int, use_utc: bool) -> str:
+    """Crea l'URL completo per il QR code."""
+    params = {
+        'token': token,
+        'to': form_url,
+        'interval': interval,
+        'utc': 1 if use_utc else 0
+    }
+    return f"{BASE_URL}?{urlencode(params)}"
+
+
 # ---------------------
 # Modalità Studente
 # ---------------------
 params = st.query_params
+
 if "token" in params:
     token_qp = params.get("token")
     to_qp = params.get("to")
-
-    interval_s = int(params.get("interval", 60))
+    interval_s = int(params.get("interval", DEFAULT_INTERVAL))
     use_utc = params.get("utc") == "1"
-
-    now = datetime.now(timezone.utc if use_utc else None)
-    valid_now = floor_time_to_interval(now, interval_s).strftime("%Y%m%d%H%M%S")
-
-    # Verifica token attuale o precedente (grace attivo)
-    is_valid = (token_qp == valid_now)
-    if not is_valid:
-        prev = datetime.fromtimestamp(now.timestamp() - interval_s, tz=now.tzinfo)
-        valid_prev = floor_time_to_interval(prev, interval_s).strftime("%Y%m%d%H%M%S")
-        is_valid = (token_qp == valid_prev)
-
-    if is_valid and to_qp:
-        st.success("✅ Token valido. Reindirizzamento in corso…")
-        st.markdown(f'<meta http-equiv="refresh" content="0; url={html.escape(to_qp)}">', unsafe_allow_html=True)
+    
+    # Validazione URL destinazione
+    if not validate_form_url(to_qp):
+        st.error("URL non valido o non autorizzato.")
+        st.stop()
+    
+    # Validazione token
+    if validate_token(token_qp, interval_s, use_utc):
+        st.success("Token valido. Reindirizzamento in corso…")
+        
+        # Redirect sicuro con fallback JavaScript
+        safe_url = html.escape(to_qp, quote=True)
+        redirect_html = f"""
+            <meta http-equiv="refresh" content="0; url={safe_url}">
+            <script>
+                window.location.href = '{safe_url}';
+            </script>
+        """
+        st.markdown(redirect_html, unsafe_allow_html=True)
         st.stop()
     else:
-        st.error("⛔ QR scaduto o non valido. Richiedi un nuovo QR.")
+        st.error("QR scaduto o non valido. Richiedi un nuovo QR al docente.")
         st.stop()
 
 # ---------------------
 # Modalità Docente
 # ---------------------
+
+# Inizializza session state
+if 'qr_refresh_count' not in st.session_state:
+    st.session_state.qr_refresh_count = 0
+
 st.title("Presenze Aula Unical")
 st.caption("Genera un QR dinamico che porta al tuo Microsoft Form, valido solo per pochi secondi.")
 
-form_link = st.sidebar.text_input("Link al Microsoft Form")
-interval_s = st.sidebar.number_input("Intervallo (secondi)", min_value=30, max_value=300, value=60, step=30)
-utc_time = st.sidebar.checkbox("Usa orario UTC", value=False)
+# Sidebar configurazione
+with st.sidebar:
+    st.header("Configurazione")
+    
+    form_link = st.text_input(
+        "Link Microsoft Form",
+        placeholder="https://forms.office.com/...",
+        help="Incolla qui il link del tuo Microsoft Form"
+    )
+    
+    interval_s = st.number_input(
+        "Intervallo di validità (secondi)",
+        min_value=MIN_INTERVAL,
+        max_value=MAX_INTERVAL,
+        value=DEFAULT_INTERVAL,
+        step=30,
+        help="Durata di validità del QR code"
+    )
+    
+    utc_time = st.checkbox(
+        "Usa orario UTC",
+        value=False,
+        help="Usa UTC invece dell'orario locale"
+    )
+    
+    if form_link and not validate_form_url(form_link):
+        st.error("URL non valido. Inserisci un link Microsoft Forms.")
 
-# URL pubblico fisso della tua app su Streamlit Cloud
-base_url = "https://presenze-aula-unical.streamlit.app/"
-
-if form_link:
+# Area principale
+if form_link and validate_form_url(form_link):
+    # Calcola timestamp e token
     now = datetime.now(timezone.utc if utc_time else None)
-    now_floored = floor_time_to_interval(now, interval_s)
-    token = now_floored.strftime("%Y%m%d%H%M%S")
-
-    qr_target = f"{base_url}?{urlencode({'token': token, 'to': form_link, 'interval': interval_s, 'utc': 1 if utc_time else 0})}"
-
-    st.subheader("QR attuale")
-    png_bytes = make_qr_png(qr_target)
-    st.image(png_bytes, caption="Scansiona per registrare la presenza", width="stretch")
-
+    token = generate_token(now, interval_s)
+    qr_target = create_qr_url(token, form_link, interval_s, utc_time)
+    
+    # Genera QR code
+    st.subheader("📱 QR Code Attuale")
+    
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col2:
+        png_bytes = make_qr_png(qr_target)
+        st.image(png_bytes, use_container_width=True)
+    
+    # Calcola tempo rimanente
     seconds_passed = int(now.timestamp()) % interval_s
     seconds_left = interval_s - seconds_passed
+    
+    # Auto-refresh con countdown
+    count = st_autorefresh(
+        interval=1000,
+        limit=seconds_left,
+        key=f"qr_timer_{st.session_state.qr_refresh_count}"
+    )
+    
+    remaining = seconds_left - count
+    
+    if remaining > 0:
+        # Progress bar
+        progress = (interval_s - remaining) / interval_s
+        st.progress(progress)
+        
+        # Info countdown
+        st.info(
+            f"Il QR si aggiornerà automaticamente tra **{remaining}** secondi\n\n"
+            f"Token corrente: `{token}`"
+        )
+    else:
+        # Incrementa contatore per forzare refresh
+        st.session_state.qr_refresh_count += 1
+        st.rerun()
+    
+    # Istruzioni per studenti
+    with st.expander("Istruzioni per gli studenti"):
+        st.markdown("""
+        1. **Scansiona** il QR code con la fotocamera del tuo smartphone
+        2. **Verrai reindirizzato** automaticamente al form di presenza
+        3. **Compila** il form entro il tempo indicato
+        
+         **Importante**: Il QR code cambia ogni {} secondi per motivi di sicurezza.
+        """.format(interval_s))
+    
+    # Informazioni tecniche
+    with st.expander("🔧 Dettagli tecnici"):
+        st.markdown(f"""
+        - **Intervallo**: {interval_s} secondi
+        - **Timezone**: {"UTC" if utc_time else "Locale"}
+        - **URL Form**: `{form_link[:50]}...`
+        - **Grace Period**: Sì (token precedente accettato)
+        """)
 
-    placeholder = st.empty()
-    for i in range(seconds_left, 0, -1):
-        placeholder.info(f"⏳ Il QR si aggiornerà tra {i} secondi (token: {token})")
-        time.sleep(1)
-
-    st.rerun()
 else:
-    st.info("Incolla nella sidebar il link del tuo Microsoft Form per generare il QR.")
+    # Schermata iniziale
+    st.info(" Inserisci il link del tuo Microsoft Form nella barra laterale per iniziare.")
+    
+    st.markdown("""
+    ### Come funziona?
+    
+    1. **Docente**: Inserisci il link del Microsoft Form nella sidebar
+    2. **Sistema**: Genera un QR code dinamico che cambia automaticamente
+    3. **Studente**: Scansiona il QR per registrare la presenza
+    4. **Sicurezza**: Ogni QR è valido solo per pochi secondi
+    
+    ### Vantaggi
+    
+    ✅ **Sicuro**: QR code temporizzati impediscono condivisioni fraudolente  
+    ✅ **Semplice**: Nessuna registrazione o login richiesta  
+    ✅ **Automatico**: Il QR si aggiorna da solo in tempo reale  
+    ✅ **Affidabile**: Grace period per problemi di sincronizzazione  
+    """)
