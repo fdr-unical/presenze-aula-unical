@@ -64,7 +64,6 @@ def generate_token(timestamp: datetime, interval: int) -> str:
     floored = floor_time_to_interval(timestamp, interval)
     return floored.strftime("%Y%m%d%H%M%S")
 
-
 def validate_token(token: str, interval: int, use_utc: bool) -> bool:
     """Valida un token verificando anche il grace period."""
     if not token:
@@ -80,7 +79,13 @@ def validate_token(token: str, interval: int, use_utc: bool) -> bool:
     # Token precedente (grace period)
     prev_time = datetime.fromtimestamp(now.timestamp() - interval, tz=now.tzinfo)
     previous_token = generate_token(prev_time, interval)
-    return token == previous_token
+    if token == previous_token:
+        return True
+    
+    # AGGIUNGI QUESTO: Token successivo per latenze di rete
+    next_time = datetime.fromtimestamp(now.timestamp() + interval, tz=now.tzinfo)
+    next_token = generate_token(next_time, interval)
+    return token == next_token
 
 
 def create_qr_url(token: str, form_url: str, interval: int, use_utc: bool) -> str:
@@ -116,13 +121,16 @@ if "token" in params:
 
         # Redirect sicuro con fallback JavaScript
         safe_url = html.escape(to_qp, quote=True)
-        redirect_html = f"""
-            <meta http-equiv="refresh" content="0; url={safe_url}">
-            <script>
-                window.location.href = '{safe_url}';
-            </script>
-        """
-        st.markdown(redirect_html, unsafe_allow_html=True)
+
+redirect_html = f"""
+<script>
+window.location.href = "{safe_url}";
+</script>
+<meta http-equiv="refresh" content="0; url={safe_url}">
+<p><strong><a href="{safe_url}" target="_blank">Clicca qui se non vieni reindirizzato</a></strong></p>
+"""
+st.components.v1.html(redirect_html, height=100)
+        
         st.stop()
     else:
         st.error("⛔ QR scaduto o non valido. Richiedi un nuovo QR al docente.")
@@ -183,15 +191,12 @@ if form_link and validate_form_url(form_link):
         st.image(png_bytes, use_container_width=True)
 
     # Calcola tempo rimanente
-    seconds_passed = int(now.timestamp()) % interval_s
-    seconds_left = interval_s - seconds_passed
+floored = floor_time_to_interval(now, intervals)
+seconds_since_floored = int((now - floored).total_seconds())
+seconds_left = intervals - seconds_since_floored
 
     # Auto-refresh con countdown
-    count = st_autorefresh(
-        interval=1000,
-        limit=seconds_left,
-        key=f"qr_timer_{st.session_state.qr_refresh_count}"
-    )
+count = st_autorefresh(interval=1000, key="qr_timer_continuous")
 
     remaining = seconds_left - count
 
