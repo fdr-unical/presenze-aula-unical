@@ -192,17 +192,22 @@ if form_link and validate_form_url(form_link):
     with col2:
         png_bytes = make_qr_png(qr_target)
         st.image(png_bytes, use_container_width=True)
+        
+# CORREZIONE: Calcola tempo rimanente CORRETTO
+floored = floor_time_to_interval(now, interval_s)  # ✅ CORRETTO
+seconds_since_floored = int((now - floored).total_seconds())
+seconds_left = interval_s - seconds_since_floored  # ✅ CORRETTO
 
-    # CORREZIONE PRINCIPALE: Calcola tempo rimanente CORRETTO
-    floored = floor_time_to_interval(now, interval_s)
-    seconds_since_floored = int((now - floored).total_seconds())
-    seconds_left = interval_s - seconds_since_floored
+# CORREZIONE: Auto-refresh continuo
+count = st_autorefresh(interval=1000, key="qr_timer_continuous")
 
-    # CORREZIONE: Auto-refresh SENZA limite per evitare blocchi
-    count = st_autorefresh(interval=1000, key="qr_timer_continuous")
+# CORREZIONE: Calcolo remaining che funziona davvero
+remaining = max(0, seconds_left - (count % interval_s))
 
-    # CORREZIONE: Calcolo remaining basato su secondi reali
-    remaining = max(0, seconds_left - (count % interval_s))
+# CORREZIONE: Forzare rerun quando necessario
+if remaining == 0 or (count > 0 and count % interval_s == 0):
+    st.session_state.qr_refresh_count += 1
+    st.rerun()
 
     # Debug info se abilitato
     if debug_mode:
