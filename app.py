@@ -1,4 +1,4 @@
-# app.py - Presenze Aula Unical
+# app.py - Presenze Aula Unical VERSIONE CORRETTA
 # Autore: Francesco De Rango <francesco.derango@unical.it>
 # Repository: https://github.com/fdr-unical/presenze-aula-unical
 # Licenza: MIT
@@ -122,14 +122,14 @@ if "token" in params:
         # Redirect sicuro con fallback JavaScript
         safe_url = html.escape(to_qp, quote=True)
 
-redirect_html = f"""
-<script>
-window.location.href = "{safe_url}";
-</script>
-<meta http-equiv="refresh" content="0; url={safe_url}">
-<p><strong><a href="{safe_url}" target="_blank">Clicca qui se non vieni reindirizzato</a></strong></p>
-"""
-st.components.v1.html(redirect_html, height=100)
+        redirect_html = f"""
+        <script>
+        window.location.href = "{safe_url}";
+        </script>
+        <meta http-equiv="refresh" content="0; url={safe_url}">
+        <p><strong><a href="{safe_url}" target="_blank">Clicca qui se non vieni reindirizzato</a></strong></p>
+        """
+        st.components.v1.html(redirect_html, height=100)
         
         st.stop()
     else:
@@ -172,6 +172,9 @@ with st.sidebar:
         help="Usa UTC invece dell'orario locale"
     )
 
+    # DEBUG OPZIONALE
+    debug_mode = st.checkbox("Debug Mode", value=False)
+
     if form_link and not validate_form_url(form_link):
         st.error("❌ URL non valido. Inserisci un link Microsoft Forms.")
 
@@ -190,19 +193,28 @@ if form_link and validate_form_url(form_link):
         png_bytes = make_qr_png(qr_target)
         st.image(png_bytes, use_container_width=True)
 
-    # Calcola tempo rimanente
-floored = floor_time_to_interval(now, intervals)
-seconds_since_floored = int((now - floored).total_seconds())
-seconds_left = intervals - seconds_since_floored
+    # CORREZIONE PRINCIPALE: Calcola tempo rimanente CORRETTO
+    floored = floor_time_to_interval(now, interval_s)
+    seconds_since_floored = int((now - floored).total_seconds())
+    seconds_left = interval_s - seconds_since_floored
 
-    # Auto-refresh con countdown
-count = st_autorefresh(interval=1000, key="qr_timer_continuous")
+    # CORREZIONE: Auto-refresh SENZA limite per evitare blocchi
+    count = st_autorefresh(interval=1000, key="qr_timer_continuous")
 
-    remaining = seconds_left - count
+    # CORREZIONE: Calcolo remaining basato su secondi reali
+    remaining = max(0, seconds_left - (count % interval_s))
+
+    # Debug info se abilitato
+    if debug_mode:
+        st.sidebar.write(f"Now: {now}")
+        st.sidebar.write(f"Floored: {floored}")
+        st.sidebar.write(f"Seconds since floored: {seconds_since_floored}")
+        st.sidebar.write(f"Count: {count}")
+        st.sidebar.write(f"Remaining calc: {remaining}")
 
     if remaining > 0:
         # Progress bar
-        progress = (interval_s - remaining) / interval_s
+        progress = min(1.0, (interval_s - remaining) / interval_s)
         st.progress(progress)
 
         # Info countdown
@@ -211,7 +223,8 @@ count = st_autorefresh(interval=1000, key="qr_timer_continuous")
             f"🔑 Token corrente: `{token}`"
         )
     else:
-        # Incrementa contatore per forzare refresh
+        # CORREZIONE: Forzare rerun quando davvero necessario
+        st.warning("🔄 Aggiornamento QR in corso...")
         st.session_state.qr_refresh_count += 1
         st.rerun()
 
@@ -253,3 +266,7 @@ else:
     ✅ **Automatico**: Il QR si aggiorna da solo in tempo reale  
     ✅ **Affidabile**: Grace period per problemi di sincronizzazione  
     """)
+
+# AGGIUNTO: Footer con info prestazioni
+st.markdown("---")
+st.caption(f"🔧 App version 2.0 | Next refresh in: {remaining if 'remaining' in locals() else 'N/A'}s")
