@@ -6,6 +6,8 @@
 
 Sistema di rilevamento presenze universitarie basato su **QR code dinamici** con token a scadenza temporizzata e validazione server-side.
 
+**Sviluppato da**: [Francesco De Rango](mailto:francesco.derango@unical.it) - Università della Calabria
+
 ---
 
 ## 🚀 Usa Subito (Zero Setup)
@@ -149,7 +151,7 @@ Validità: 14:32:00 - 14:32:59 + grace period (14:31:00 - 14:31:59)
 
 4. **Aggiorna BASE_URL nel codice**
 
-   Modifica `app.py` alla riga 21:
+   Modifica `app.py` alla riga 24:
    ```python
    # PRIMA:
    BASE_URL = "https://presenze-aula-unical.streamlit.app/"
@@ -325,7 +327,7 @@ Pillow>=10.0.0
 #### Aggiungere Google Forms
 
 ```python
-# In app.py, riga 22
+# In app.py, riga 25
 ALLOWED_DOMAINS = [
     "forms.office.com",
     "forms.microsoft.com",
@@ -336,7 +338,7 @@ ALLOWED_DOMAINS = [
 #### Modificare intervallo default
 
 ```python
-# In app.py, riga 23
+# In app.py, riga 26
 DEFAULT_INTERVAL = 90  # 90 secondi invece di 60
 ```
 
@@ -436,7 +438,7 @@ Apri una [Issue](https://github.com/fdr-unical/presenze-aula-unical/issues) desc
 Questo progetto è rilasciato sotto licenza **MIT License**.
 
 ```
-Copyright (c) 2025 FDR-Unical - Università della Calabria
+Copyright (c) 2025 Francesco De Rango
 
 Permesso concesso di usare, copiare, modificare e distribuire
 questo software per qualsiasi scopo, anche commerciale.
@@ -455,15 +457,25 @@ Vedi il file [LICENSE](LICENSE) per il testo completo.
 
 ---
 
+## 👤 Autore
+
+**Francesco De Rango**  
+📧 Email: [francesco.derango@unical.it](mailto:francesco.derango@unical.it)  
+🏛️ Università della Calabria  
+🔗 GitHub: [https://github.com/fdr-unical/presenze-aula-unical](https://github.com/fdr-unical/presenze-aula-unical)
+
+---
+
 ## 📧 Contatti
 
-Per domande o supporto:
+Per domande, supporto o collaborazioni:
 - **Issues**: [https://github.com/fdr-unical/presenze-aula-unical/issues](https://github.com/fdr-unical/presenze-aula-unical/issues)
+- **Email**: [francesco.derango@unical.it](mailto:francesco.derango@unical.it)
 - **Repository**: [https://github.com/fdr-unical/presenze-aula-unical](https://github.com/fdr-unical/presenze-aula-unical)
-- **Università della Calabria**: [www.unical.it](https://www.unical.it)
 
 ---
 
 <p align="center">
-  Realizzato con ❤️ per <a href="https://www.unical.it">Università della Calabria</a>
+  Sviluppato con ❤️ da <a href="mailto:francesco.derango@unical.it">Francesco De Rango</a><br>
+  In uso presso <a href="https://www.unical.it">Università della Calabria</a>
 </p>

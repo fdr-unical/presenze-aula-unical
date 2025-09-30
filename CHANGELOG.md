@@ -60,6 +60,12 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/spec/v2.0
 
 ---
 
+## Autore
+
+**Francesco De Rango** - [francesco.derango@unical.it](mailto:francesco.derango@unical.it)
+
+---
+
 ## Legenda
 
 - `✨ Aggiunto` per nuove funzionalità

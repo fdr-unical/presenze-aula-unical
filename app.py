@@ -1,4 +1,8 @@
-# app.py - Presenze Aula Unical (ottimizzato)
+# app.py - Presenze Aula Unical
+# Autore: Francesco De Rango <francesco.derango@unical.it>
+# Repository: https://github.com/fdr-unical/presenze-aula-unical
+# Licenza: MIT
+
 from datetime import datetime, timezone
 import html
 import io

@@ -100,3 +100,10 @@ Vedi [README.md](README.md) per:
 - Deploy di una tua versione
 - Configurazione avanzata
 - FAQ complete
+
+---
+
+## 👤 Autore
+
+**Francesco De Rango**  
+Email: [francesco.derango@unical.it](mailto:francesco.derango@unical.it)

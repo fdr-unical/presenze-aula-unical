@@ -2,6 +2,8 @@
 
 Grazie per l'interesse nel contribuire al progetto! 🎉
 
+**Mantenitore**: [Francesco De Rango](mailto:francesco.derango@unical.it)
+
 ## Come posso contribuire?
 
 ### 🐛 Segnalare bug
@@ -45,14 +47,6 @@ git checkout -b feature/nome-funzionalità
 # 4. Usa lo script di avvio per setup automatico
 # Windows: start.bat
 # Linux/macOS: ./start.sh
-
-# Oppure manualmente:
-python3 -m venv venv
-source venv/bin/activate  # Linux/macOS
-# oppure
-venv\Scripts\activate  # Windows
-
-pip install -r requirements.txt
 ```
 
 #### Linee guida per il codice
@@ -62,24 +56,6 @@ pip install -r requirements.txt
 - Segui [PEP 8](https://peps.python.org/pep-0008/)
 - Aggiungi **type hints** dove possibile
 - Documenta funzioni con **docstring**
-
-**Esempio:**
-
-```python
-def generate_token(timestamp: datetime, interval: int) -> str:
-    """
-    Genera un token temporale univoco.
-
-    Args:
-        timestamp: Timestamp di riferimento
-        interval: Intervallo in secondi
-
-    Returns:
-        Token nel formato YYYYMMDDhhmmss
-    """
-    floored = floor_time_to_interval(timestamp, interval)
-    return floored.strftime("%Y%m%d%H%M%S")
-```
 
 **Commit:**
 - Usa messaggi chiari e descrittivi
@@ -96,11 +72,10 @@ git commit -m "docs: aggiorna README con esempi"
 
 1. **Scrivi il codice** e testa localmente
 2. **Formatta** con Black: `black app.py`
-3. **Verifica** con flake8: `flake8 app.py` (opzionale)
-4. **Commit** con messaggio descrittivo
-5. **Push** al tuo fork: `git push origin feature/nome-funzionalità`
-6. **Apri Pull Request** su GitHub
-7. **Descrivi** le modifiche nella PR
+3. **Commit** con messaggio descrittivo
+4. **Push** al tuo fork: `git push origin feature/nome-funzionalità`
+5. **Apri Pull Request** su GitHub
+6. **Descrivi** le modifiche nella PR
 
 #### Checklist PR
 
@@ -121,29 +96,14 @@ La documentazione è importante quanto il codice!
 - Traduci in altre lingue
 - Aggiungi screenshot/video tutorial
 
-### 🧪 Testing
-
-Se vuoi aggiungere test (apprezzatissimo!):
-
-```bash
-# Installa pytest
-pip install pytest pytest-cov
-
-# Crea file tests/test_app.py
-# Esegui test
-pytest tests/
-
-# Con coverage
-pytest --cov=app tests/
-```
-
 ## Domande?
 
-Se hai dubbi, apri una [Discussion](https://github.com/fdr-unical/presenze-aula-unical/discussions) o contattaci via Issues.
+Se hai dubbi, apri una [Discussion](https://github.com/fdr-unical/presenze-aula-unical/discussions) o contatta via email:
+📧 [francesco.derango@unical.it](mailto:francesco.derango@unical.it)
 
 ## Codice di Condotta
 
-Sii rispettoso e costruttivo. Questo è un progetto educativo per l'Università della Calabria.
+Sii rispettoso e costruttivo. Questo è un progetto open source educativo.
 
 ### Comportamenti incoraggiati:
 - ✅ Linguaggio rispettoso e inclusivo
@@ -161,3 +121,7 @@ Sii rispettoso e costruttivo. Questo è un progetto educativo per l'Università 
 Grazie per contribuire! 🙏
 
 Il tuo contributo aiuta a migliorare l'esperienza educativa di studenti e docenti.
+
+---
+
+**Progetto mantenuto da**: Francesco De Rango ([francesco.derango@unical.it](mailto:francesco.derango@unical.it))
