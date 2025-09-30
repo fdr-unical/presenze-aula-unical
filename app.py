@@ -50,7 +50,7 @@ def validate_form_url(url: str) -> bool:
     """Valida che l'URL sia un Microsoft Form legittimo."""
     if not url or not validators.url(url):
         return False
-    
+
     parsed = urlparse(url)
     return any(domain in parsed.netloc for domain in ALLOWED_DOMAINS)
 
@@ -65,14 +65,14 @@ def validate_token(token: str, interval: int, use_utc: bool) -> bool:
     """Valida un token verificando anche il grace period."""
     if not token:
         return False
-    
+
     now = datetime.now(timezone.utc if use_utc else None)
-    
+
     # Token corrente
     current_token = generate_token(now, interval)
     if token == current_token:
         return True
-    
+
     # Token precedente (grace period)
     prev_time = datetime.fromtimestamp(now.timestamp() - interval, tz=now.tzinfo)
     previous_token = generate_token(prev_time, interval)
@@ -100,16 +100,16 @@ if "token" in params:
     to_qp = params.get("to")
     interval_s = int(params.get("interval", DEFAULT_INTERVAL))
     use_utc = params.get("utc") == "1"
-    
+
     # Validazione URL destinazione
     if not validate_form_url(to_qp):
-        st.error("URL non valido o non autorizzato.")
+        st.error("⛔ URL non valido o non autorizzato.")
         st.stop()
-    
+
     # Validazione token
     if validate_token(token_qp, interval_s, use_utc):
-        st.success("Token valido. Reindirizzamento in corso…")
-        
+        st.success("✅ Token valido. Reindirizzamento in corso…")
+
         # Redirect sicuro con fallback JavaScript
         safe_url = html.escape(to_qp, quote=True)
         redirect_html = f"""
@@ -121,7 +121,7 @@ if "token" in params:
         st.markdown(redirect_html, unsafe_allow_html=True)
         st.stop()
     else:
-        st.error("QR scaduto o non valido. Richiedi un nuovo QR al docente.")
+        st.error("⛔ QR scaduto o non valido. Richiedi un nuovo QR al docente.")
         st.stop()
 
 # ---------------------
@@ -132,19 +132,19 @@ if "token" in params:
 if 'qr_refresh_count' not in st.session_state:
     st.session_state.qr_refresh_count = 0
 
-st.title("Presenze Aula Unical")
+st.title("🎓 Presenze Aula Unical")
 st.caption("Genera un QR dinamico che porta al tuo Microsoft Form, valido solo per pochi secondi.")
 
 # Sidebar configurazione
 with st.sidebar:
-    st.header("Configurazione")
-    
+    st.header("⚙️ Configurazione")
+
     form_link = st.text_input(
         "Link Microsoft Form",
         placeholder="https://forms.office.com/...",
         help="Incolla qui il link del tuo Microsoft Form"
     )
-    
+
     interval_s = st.number_input(
         "Intervallo di validità (secondi)",
         min_value=MIN_INTERVAL,
@@ -153,15 +153,15 @@ with st.sidebar:
         step=30,
         help="Durata di validità del QR code"
     )
-    
+
     utc_time = st.checkbox(
         "Usa orario UTC",
         value=False,
         help="Usa UTC invece dell'orario locale"
     )
-    
+
     if form_link and not validate_form_url(form_link):
-        st.error("URL non valido. Inserisci un link Microsoft Forms.")
+        st.error("❌ URL non valido. Inserisci un link Microsoft Forms.")
 
 # Area principale
 if form_link and validate_form_url(form_link):
@@ -169,53 +169,53 @@ if form_link and validate_form_url(form_link):
     now = datetime.now(timezone.utc if utc_time else None)
     token = generate_token(now, interval_s)
     qr_target = create_qr_url(token, form_link, interval_s, utc_time)
-    
+
     # Genera QR code
     st.subheader("📱 QR Code Attuale")
-    
+
     col1, col2, col3 = st.columns([1, 3, 1])
     with col2:
         png_bytes = make_qr_png(qr_target)
         st.image(png_bytes, use_container_width=True)
-    
+
     # Calcola tempo rimanente
     seconds_passed = int(now.timestamp()) % interval_s
     seconds_left = interval_s - seconds_passed
-    
+
     # Auto-refresh con countdown
     count = st_autorefresh(
         interval=1000,
         limit=seconds_left,
         key=f"qr_timer_{st.session_state.qr_refresh_count}"
     )
-    
+
     remaining = seconds_left - count
-    
+
     if remaining > 0:
         # Progress bar
         progress = (interval_s - remaining) / interval_s
         st.progress(progress)
-        
+
         # Info countdown
         st.info(
-            f"Il QR si aggiornerà automaticamente tra **{remaining}** secondi\n\n"
-            f"Token corrente: `{token}`"
+            f"⏳ Il QR si aggiornerà automaticamente tra **{remaining}** secondi\n\n"
+            f"🔑 Token corrente: `{token}`"
         )
     else:
         # Incrementa contatore per forzare refresh
         st.session_state.qr_refresh_count += 1
         st.rerun()
-    
+
     # Istruzioni per studenti
-    with st.expander("Istruzioni per gli studenti"):
-        st.markdown("""
+    with st.expander("📋 Istruzioni per gli studenti"):
+        st.markdown(f"""
         1. **Scansiona** il QR code con la fotocamera del tuo smartphone
         2. **Verrai reindirizzato** automaticamente al form di presenza
         3. **Compila** il form entro il tempo indicato
-        
-         **Importante**: Il QR code cambia ogni {} secondi per motivi di sicurezza.
-        """.format(interval_s))
-    
+
+        ⚠️ **Importante**: Il QR code cambia ogni {interval_s} secondi per motivi di sicurezza.
+        """)
+
     # Informazioni tecniche
     with st.expander("🔧 Dettagli tecnici"):
         st.markdown(f"""
@@ -227,18 +227,18 @@ if form_link and validate_form_url(form_link):
 
 else:
     # Schermata iniziale
-    st.info(" Inserisci il link del tuo Microsoft Form nella barra laterale per iniziare.")
-    
+    st.info("👈 Inserisci il link del tuo Microsoft Form nella barra laterale per iniziare.")
+
     st.markdown("""
     ### Come funziona?
-    
+
     1. **Docente**: Inserisci il link del Microsoft Form nella sidebar
     2. **Sistema**: Genera un QR code dinamico che cambia automaticamente
     3. **Studente**: Scansiona il QR per registrare la presenza
     4. **Sicurezza**: Ogni QR è valido solo per pochi secondi
-    
+
     ### Vantaggi
-    
+
     ✅ **Sicuro**: QR code temporizzati impediscono condivisioni fraudolente  
     ✅ **Semplice**: Nessuna registrazione o login richiesta  
     ✅ **Automatico**: Il QR si aggiorna da solo in tempo reale  
