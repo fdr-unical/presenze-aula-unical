@@ -6,7 +6,20 @@
 
 Sistema di rilevamento presenze universitarie basato su **QR code dinamici** con token a scadenza temporizzata e validazione server-side.
 
-🔗 **Live App**: [https://presenze-aula-unical.streamlit.app/](https://presenze-aula-unical.streamlit.app/)
+---
+
+## 🚀 Usa Subito (Zero Setup)
+
+L'app è **già online e funzionante**:
+
+🌐 **https://presenze-aula-unical.streamlit.app/**
+
+Ideale per:
+- ✅ Docenti che vogliono usare l'app immediatamente
+- ✅ Test rapido del sistema
+- ✅ Utilizzo quotidiano in aula
+
+**Nessuna installazione richiesta** - apri il link e inizia a generare QR code!
 
 ---
 
@@ -14,11 +27,11 @@ Sistema di rilevamento presenze universitarie basato su **QR code dinamici** con
 
 - [Caratteristiche](#-caratteristiche)
 - [Come funziona](#-come-funziona)
+- [Utilizzo - 3 Modalità](#-utilizzo---3-modalità)
+  - [Modalità 1: Usa App Live](#modalità-1-usa-app-live-raccomandato)
+  - [Modalità 2: Deploya Tua Versione](#modalità-2-deploya-la-tua-versione)
+  - [Modalità 3: Sviluppo Locale](#modalità-3-sviluppo-locale)
 - [Architettura e Sicurezza](#-architettura-e-sicurezza)
-- [Requisiti](#-requisiti)
-- [Installazione](#-installazione)
-- [Utilizzo](#-utilizzo)
-- [Deploy su Streamlit Cloud](#-deploy-su-streamlit-cloud)
 - [Configurazione](#-configurazione)
 - [FAQ](#-faq)
 - [Contribuire](#-contribuire)
@@ -83,6 +96,156 @@ Validità: 14:32:00 - 14:32:59 + grace period (14:31:00 - 14:31:59)
 
 ---
 
+## 💻 Utilizzo - 3 Modalità
+
+### Modalità 1: Usa App Live (Raccomandato)
+
+**Per docenti che vogliono usare l'app immediatamente.**
+
+1. **Apri** https://presenze-aula-unical.streamlit.app/
+2. **Inserisci** il link del tuo Microsoft Form nella sidebar
+3. **Proietta** il QR code in aula
+4. **Gli studenti scansionano** e compilano il form
+
+✅ **Nessuna installazione richiesta**  
+✅ **Sempre aggiornata**  
+✅ **Zero manutenzione**
+
+---
+
+### Modalità 2: Deploya la Tua Versione
+
+**Per altre università/istituzioni che vogliono una propria istanza.**
+
+#### Perché deployare la tua versione?
+- Personalizzare dominio/branding
+- Controllo completo dell'infrastruttura
+- Aggiungere funzionalità custom
+- Integrazione con sistemi interni
+
+#### Step-by-step
+
+1. **Fork del repository**
+   ```bash
+   # Vai su https://github.com/fdr-unical/presenze-aula-unical
+   # Click su "Fork" in alto a destra
+   ```
+
+2. **Clona il tuo fork**
+   ```bash
+   git clone https://github.com/TUO-USERNAME/presenze-aula-unical.git
+   cd presenze-aula-unical
+   ```
+
+3. **Deploy su Streamlit Cloud**
+   - Vai su [share.streamlit.io](https://share.streamlit.io)
+   - Click **"New app"**
+   - Seleziona il tuo repository fork
+   - Branch: `main`
+   - Main file: `app.py`
+   - Click **"Deploy"**
+
+   Il tuo URL sarà: `https://TUO-USERNAME-presenze-aula-unical.streamlit.app/`
+
+4. **Aggiorna BASE_URL nel codice**
+
+   Modifica `app.py` alla riga 21:
+   ```python
+   # PRIMA:
+   BASE_URL = "https://presenze-aula-unical.streamlit.app/"
+
+   # DOPO:
+   BASE_URL = "https://TUO-USERNAME-presenze-aula-unical.streamlit.app/"
+   ```
+
+5. **Commit e push**
+   ```bash
+   git add app.py
+   git commit -m "Update BASE_URL per la mia istanza"
+   git push origin main
+   ```
+
+6. **Attendere redeploy** (1-2 minuti)
+
+✅ **Ora hai la tua istanza personalizzata!**
+
+#### Alternative a Streamlit Cloud
+
+L'app può essere deployata anche su:
+- **Heroku**: `heroku create` + `git push heroku main`
+- **Docker**: Usa il `Dockerfile` incluso
+- **Server proprio**: `streamlit run app.py --server.port 8501`
+
+---
+
+### Modalità 3: Sviluppo Locale
+
+**Per sviluppatori che vogliono modificare il codice o contribuire.**
+
+#### Avvio Rapido
+
+**Windows:**
+```cmd
+start.bat
+```
+
+**Linux/macOS:**
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+Gli script gestiscono automaticamente:
+- ✅ Verifica Python installato
+- ✅ Creazione ambiente virtuale
+- ✅ Installazione dipendenze
+- ✅ Avvio Streamlit
+
+#### Avvio Manuale
+
+Se preferisci il controllo completo:
+
+```bash
+# 1. Clona il repository
+git clone https://github.com/fdr-unical/presenze-aula-unical.git
+cd presenze-aula-unical
+
+# 2. Crea ambiente virtuale
+python3 -m venv venv
+source venv/bin/activate  # Linux/macOS
+# oppure
+venv\Scripts\activate  # Windows
+
+# 3. Installa dipendenze
+pip install -r requirements.txt
+
+# 4. Avvia l'app
+streamlit run app.py
+```
+
+#### URL Locali
+
+L'app sarà disponibile su:
+
+- **Local URL**: `http://localhost:8501`  
+  → Accesso solo dal tuo computer
+
+- **Network URL**: `http://192.168.x.x:8501`  
+  → Accesso da altri dispositivi sulla tua rete WiFi/LAN  
+  → Utile per testare da smartphone senza deploy
+
+**Nota**: L'IP `192.168.x.x` cambia in base alla tua rete e viene mostrato da Streamlit all'avvio.
+
+#### Test durante sviluppo
+
+Per testare modifiche al codice:
+
+1. Modifica `app.py`
+2. Streamlit rileva automaticamente i cambiamenti
+3. Click su "Rerun" nel browser per vedere le modifiche
+
+---
+
 ## 🔐 Architettura e Sicurezza
 
 ### Componenti principali
@@ -120,13 +283,20 @@ Validità: 14:32:00 - 14:32:59 + grace period (14:31:00 - 14:31:59)
 
 ## 📦 Requisiti
 
-### Software
+### Per usare l'app live
+- ✅ Solo un browser moderno (nessuna installazione)
+
+### Per deploy propria versione
+- Account GitHub (gratuito)
+- Account Streamlit Cloud (gratuito)
+
+### Per sviluppo locale
 - Python 3.9 o superiore
 - pip (package manager)
-- Browser moderno (Chrome, Firefox, Safari, Edge)
 
-### Dipendenze Python
-Vedi [`requirements.txt`](requirements.txt) per la lista completa:
+#### Dipendenze Python
+
+Vedi [`requirements.txt`](requirements.txt):
 
 ```
 streamlit>=1.50.0
@@ -138,123 +308,9 @@ Pillow>=10.0.0
 
 ---
 
-## 🚀 Installazione
-
-### 1. Clona il repository
-
-```bash
-git clone https://github.com/fdr-unical/presenze-aula-unical.git
-cd presenze-aula-unical
-```
-
-### 2. Crea ambiente virtuale (opzionale ma raccomandato)
-
-```bash
-# Linux/macOS
-python3 -m venv venv
-source venv/bin/activate
-
-# Windows
-python -m venv venv
-venv\Scripts\activate
-```
-
-### 3. Installa dipendenze
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Verifica installazione
-
-```bash
-streamlit --version
-python -c "import qrcode, validators, streamlit_autorefresh; print('OK')"
-```
-
----
-
-## 💻 Utilizzo
-
-### Avvio locale
-
-```bash
-streamlit run app.py
-```
-
-L'app sarà disponibile su:
-```
-Local URL: http://localhost:8501
-Network URL: http://192.168.x.x:8501
-```
-
-### Modalità Docente
-
-1. **Apri l'app** nel browser
-2. **Inserisci nella sidebar**:
-   - Link del Microsoft Form (es. `https://forms.office.com/r/xxxxx`)
-   - Intervallo di validità (30-300 secondi, default 60)
-   - Timezone (UTC o locale)
-3. **Proietta il QR** in aula o condividilo sullo schermo
-4. **Il QR si aggiorna automaticamente** allo scadere dell'intervallo
-
-### Modalità Studente
-
-1. **Scansiona il QR** con la fotocamera dello smartphone
-2. **Attendi il redirect** automatico
-3. **Compila il Microsoft Form** entro il tempo indicato
-
-### Test rapido in locale
-
-Per testare il funzionamento senza studenti:
-
-1. Imposta intervallo a **30 secondi**
-2. Genera il QR
-3. Copia l'URL sotto il QR (click destro → Copia indirizzo link)
-4. Apri l'URL in una nuova tab: 
-   - ✅ Se entro 30 secondi → redirect al form
-   - ⛔ Se dopo 30 secondi → errore "QR scaduto"
-
----
-
-## ☁️ Deploy su Streamlit Cloud
-
-### Prerequisiti
-- Account GitHub (gratuito)
-- Account Streamlit Cloud (gratuito): [streamlit.io/cloud](https://streamlit.io/cloud)
-
-### Step-by-step
-
-1. **Il repository è già su GitHub**:
-   ```
-   https://github.com/fdr-unical/presenze-aula-unical
-   ```
-
-2. **Deploy su Streamlit Cloud**:
-   - Vai su [share.streamlit.io](https://share.streamlit.io)
-   - Click **"New app"**
-   - Seleziona:
-     - Repository: `fdr-unical/presenze-aula-unical`
-     - Branch: `main`
-     - Main file path: `app.py`
-   - Click **"Deploy"**
-
-3. **URL pubblico**:
-   ```
-   https://presenze-aula-unical.streamlit.app/
-   ```
-
-### Gestione deployment
-
-- **Logs**: Dashboard Streamlit Cloud → App logs
-- **Riavvio**: Dashboard → Reboot app
-- **Aggiornamenti**: Ogni push su `main` rideploya automaticamente
-
----
-
 ## ⚙️ Configurazione
 
-### Parametri configurabili
+### Parametri configurabili in `app.py`
 
 | Parametro | Descrizione | Range | Default |
 |-----------|-------------|-------|---------|
@@ -264,24 +320,35 @@ Per testare il funzionamento senza studenti:
 | `MIN_INTERVAL` | Intervallo minimo (sec) | ≥30 | 30 |
 | `MAX_INTERVAL` | Intervallo massimo (sec) | ≤300 | 300 |
 
-### Personalizzazione
+### Personalizzazioni comuni
 
-#### Aggiungere altri domini form
+#### Aggiungere Google Forms
 
 ```python
 # In app.py, riga 22
 ALLOWED_DOMAINS = [
     "forms.office.com",
     "forms.microsoft.com",
-    "docs.google.com"  # Aggiungi Google Forms
+    "docs.google.com"  # ⬅️ Aggiungi questa riga
 ]
 ```
 
-#### Modificare intervallo di default
+#### Modificare intervallo default
 
 ```python
 # In app.py, riga 23
 DEFAULT_INTERVAL = 90  # 90 secondi invece di 60
+```
+
+#### Personalizzare tema Streamlit
+
+Modifica `.streamlit/config.toml`:
+
+```toml
+[theme]
+primaryColor = "#0066CC"      # Colore principale
+backgroundColor = "#FFFFFF"    # Sfondo
+textColor = "#262730"          # Testo
 ```
 
 ---
@@ -289,9 +356,15 @@ DEFAULT_INTERVAL = 90  # 90 secondi invece di 60
 ## ❓ FAQ
 
 <details>
+<summary><strong>Posso usare l'app senza installare nulla?</strong></summary>
+
+Sì! Vai su https://presenze-aula-unical.streamlit.app/ e inizia subito.
+</details>
+
+<details>
 <summary><strong>Cosa succede se uno studente scansiona un QR scaduto?</strong></summary>
 
-Il sistema mostra il messaggio: *"⛔ QR scaduto o non valido. Richiedi un nuovo QR al docente."*
+Il sistema mostra: *"⛔ QR scaduto o non valido. Richiedi un nuovo QR al docente."*
 
 Grazie al **grace period**, QR scaduti da meno di un intervallo sono comunque accettati per gestire ritardi di sincronizzazione.
 </details>
@@ -321,12 +394,15 @@ Non ci sono limiti tecnici lato app. Il limite dipende dalla capacità di Micros
 </details>
 
 <details>
-<summary><strong>Funziona offline?</strong></summary>
+<summary><strong>Posso deployare su server mio invece di Streamlit Cloud?</strong></summary>
 
-No. Serve connessione internet per:
-- Generare QR (docente)
-- Validare token (app)
-- Inviare form (studente)
+Sì! L'app è standard Streamlit. Esegui `streamlit run app.py --server.port 8501` su qualsiasi server con Python 3.9+.
+</details>
+
+<details>
+<summary><strong>Come aggiorno l'app live dopo un push su GitHub?</strong></summary>
+
+Streamlit Cloud monitora il repository. Ogni push su `main` triggera un redeploy automatico (1-2 minuti).
 </details>
 
 ---
@@ -339,14 +415,16 @@ Contributi, segnalazioni bug e richieste di funzionalità sono benvenuti!
 
 1. **Fork** il progetto
 2. **Crea** un branch per la feature (`git checkout -b feature/NuovaFunzione`)
-3. **Commit** le modifiche (`git commit -m 'Aggiunge NuovaFunzione'`)
+3. **Commit** le modifiche (`git commit -m 'feat: aggiunge supporto Google Forms'`)
 4. **Push** al branch (`git push origin feature/NuovaFunzione`)
 5. **Apri** una Pull Request
+
+Vedi [CONTRIBUTING.md](CONTRIBUTING.md) per linee guida dettagliate.
 
 ### Segnalare bug
 
 Apri una [Issue](https://github.com/fdr-unical/presenze-aula-unical/issues) descrivendo:
-- Comportamento atteso vs comportamento osservato
+- Comportamento atteso vs osservato
 - Step per riprodurre il bug
 - Screenshot (se applicabile)
 - Ambiente (OS, browser, versione Python)
@@ -357,7 +435,14 @@ Apri una [Issue](https://github.com/fdr-unical/presenze-aula-unical/issues) desc
 
 Questo progetto è rilasciato sotto licenza **MIT License**.
 
-Vedi il file [LICENSE](LICENSE) per maggiori dettagli.
+```
+Copyright (c) 2025 FDR-Unical - Università della Calabria
+
+Permesso concesso di usare, copiare, modificare e distribuire
+questo software per qualsiasi scopo, anche commerciale.
+```
+
+Vedi il file [LICENSE](LICENSE) per il testo completo.
 
 ---
 
