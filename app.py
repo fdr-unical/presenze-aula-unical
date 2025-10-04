@@ -1,251 +1,299 @@
 import streamlit as st
-import qrcode
-from io import BytesIO
-from PIL import Image
 import time
-import validators
-from streamlit_autorefresh import st_autorefresh
-from datetime import datetime, timezone
-import math
+import hashlib
+from datetime import datetime
+import pandas as pd
 
-# ============================================================
-# CONFIGURAZIONE
-# ============================================================
-BASE_URL = "https://presenze-aula-unical.streamlit.app/"
-ALLOWED_DOMAINS = ["forms.office.com", "forms.microsoft.com"]
-DEFAULT_INTERVAL = 60  # secondi
-MIN_INTERVAL = 30
-MAX_INTERVAL = 300
-
-# ============================================================
-# FUNZIONI UTILITÀ
-# ============================================================
-
-def validate_form_url(url):
-    """Valida l'URL del form Microsoft"""
-    if not validators.url(url):
-        return False, "URL non valido"
-
-    for domain in ALLOWED_DOMAINS:
-        if domain in url:
-            return True, "URL valido"
-
-    return False, f"URL deve contenere uno di: {', '.join(ALLOWED_DOMAINS)}"
-
-def generate_token(interval_seconds=60):
-    """Genera token basato sul tempo corrente"""
-    now_utc = datetime.now(timezone.utc)
-    timestamp = int(now_utc.timestamp())
-    bin_number = math.floor(timestamp / interval_seconds)
-    return bin_number
-
-def is_token_valid(token, interval_seconds=60, grace_period=True):
-    """Verifica se un token è ancora valido"""
-    current_token = generate_token(interval_seconds)
-
-    if token == current_token:
-        return True
-
-    # Grace period: accetta anche il token dell'intervallo precedente
-    if grace_period and token == (current_token - 1):
-        return True
-
-    return False
-
-def generate_qr_url(form_url, token):
-    """Genera URL con token per validazione"""
-    return f"{BASE_URL}?token={token}&redirect={form_url}"
-
-def generate_qr_code(url, size=300):
-    """Genera QR code come immagine PIL"""
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_H,
-        box_size=10,
-        border=4,
-    )
-    qr.add_data(url)
-    qr.make(fit=True)
-
-    img = qr.make_image(fill_color="black", back_color="white")
-    img = img.resize((size, size))
-    return img
-
-def get_time_remaining(interval_seconds=60):
-    """Calcola secondi rimanenti nell'intervallo corrente"""
-    now_utc = datetime.now(timezone.utc)
-    timestamp = int(now_utc.timestamp())
-    seconds_in_interval = timestamp % interval_seconds
-    return interval_seconds - seconds_in_interval
-
-# ============================================================
-# CONFIGURAZIONE PAGINA
-# ============================================================
-
+# Configurazione pagina
 st.set_page_config(
-    page_title="QR Code Presenze - UnICal",
-    page_icon="🎓",
-    layout="centered",
-    initial_sidebar_state="expanded"
+    page_title="Presenze Aula - UniCal",
+    page_icon="📋",
+    layout="wide"
 )
 
-# ============================================================
-# GESTIONE URL PARAMETERS (Validazione Token)
-# ============================================================
+# CSS personalizzato
+st.markdown("""
+<style>
+    .big-font {
+        font-size: 24px !important;
+        font-weight: bold;
+    }
+    .success-box {
+        padding: 20px;
+        border-radius: 10px;
+        background-color: #d4edda;
+        border: 2px solid #28a745;
+        margin: 20px 0;
+    }
+    .error-box {
+        padding: 20px;
+        border-radius: 10px;
+        background-color: #f8d7da;
+        border: 2px solid #dc3545;
+        margin: 20px 0;
+    }
+    .warning-box {
+        padding: 20px;
+        border-radius: 10px;
+        background-color: #fff3cd;
+        border: 2px solid #ffc107;
+        margin: 20px 0;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-query_params = st.query_params
+# Funzione per generare token
+def generate_token(period=60):
+    """Genera token basato su timestamp corrente"""
+    now_sec = int(time.time())
+    bin_value = now_sec // period
+    return str(bin_value)
 
-if "token" in query_params and "redirect" in query_params:
-    # Modalità validazione studente
-    try:
-        token = int(query_params["token"])
-        redirect_url = query_params["redirect"]
-        interval = int(query_params.get("interval", DEFAULT_INTERVAL))
+# Funzione per validare token
+def validate_token(token, period=60, tolerance=0):
+    """
+    Valida se il token è ancora valido
+    tolerance: numero di periodi precedenti da accettare (0 = solo corrente)
+    """
+    current_token = generate_token(period)
 
-        if is_token_valid(token, interval):
-            st.success("✅ Token valido! Reindirizzamento al form...")
-            st.markdown(f"""
-            <meta http-equiv="refresh" content="0;url={redirect_url}">
-            <script>window.location.href = '{redirect_url}';</script>
-            """, unsafe_allow_html=True)
-            st.markdown(f"[Se non vieni reindirizzato automaticamente, clicca qui]({redirect_url})")
-            st.stop()
-        else:
-            st.error("⛔ QR Code scaduto o non valido")
-            st.warning("Richiedi un nuovo QR code al docente.")
-            st.stop()
+    # Controlla token corrente
+    if token == current_token:
+        return True, "Token valido (periodo corrente)"
 
-    except ValueError:
-        st.error("❌ Token non valido")
-        st.stop()
+    # Controlla periodi precedenti se tolerance > 0
+    if tolerance > 0:
+        for i in range(1, tolerance + 1):
+            now_sec = int(time.time())
+            previous_bin = (now_sec // period) - i
+            if token == str(previous_bin):
+                return True, f"Token valido (periodo precedente -{i})"
 
-# ============================================================
-# MODALITÀ DOCENTE - GENERAZIONE QR CODE
-# ============================================================
+    return False, "Token scaduto o non valido"
 
-st.title("🎓 QR Code Presenze Aula")
-st.markdown("**Università della Calabria** - Sistema anti-frode con token temporizzati")
+# Funzione per salvare presenza
+def save_attendance(student_name, student_id, token, period):
+    """Salva presenza nel database (simulato)"""
+    timestamp = datetime.now()
+    is_valid, message = validate_token(token, period, tolerance=1)
 
-# Sidebar - Configurazione
+    if is_valid:
+        # In produzione: salvare in database
+        attendance_record = {
+            "timestamp": timestamp,
+            "student_name": student_name,
+            "student_id": student_id,
+            "token": token,
+            "status": "presente",
+            "message": message
+        }
+        return True, attendance_record
+    else:
+        return False, {"message": message}
+
+# Titolo principale
+st.title("📋 Sistema Presenze Aula - UniCal")
+st.markdown("### Rilevazione Presenze con QR Code Dinamico")
+
+# Sidebar configurazione
 with st.sidebar:
     st.header("⚙️ Configurazione")
 
-    form_url = st.text_input(
-        "URL Form Microsoft",
-        placeholder="https://forms.office.com/...",
-        help="Inserisci l'URL completo del tuo Microsoft Form"
+    # Modalità
+    mode = st.radio(
+        "Modalità:",
+        ["Studente (Registra Presenza)", "Docente (Genera QR Code)"],
+        index=0
     )
 
-    interval = st.slider(
-        "Intervallo aggiornamento (secondi)",
-        min_value=MIN_INTERVAL,
-        max_value=MAX_INTERVAL,
-        value=DEFAULT_INTERVAL,
-        step=10,
-        help="Frequenza di rotazione del QR code"
-    )
+    st.divider()
 
-    qr_size = st.slider(
-        "Dimensione QR Code",
-        min_value=200,
-        max_value=500,
-        value=300,
-        step=50
-    )
+    # Impostazioni avanzate
+    with st.expander("🔧 Impostazioni Avanzate"):
+        period = st.slider(
+            "Intervallo QR Code (secondi)",
+            min_value=45,
+            max_value=180,
+            value=60,
+            step=15,
+            help="Tempo di validità di ogni QR code"
+        )
 
+        tolerance = st.slider(
+            "Tolleranza periodi",
+            min_value=0,
+            max_value=2,
+            value=1,
+            help="Accetta token dei periodi precedenti (0=solo corrente, 1=+60s, 2=+120s)"
+        )
+
+# ============================================
+# MODALITÀ STUDENTE
+# ============================================
+if mode == "Studente (Registra Presenza)":
     st.markdown("---")
-    st.markdown("### 📖 Come funziona")
-    st.markdown("""
-    1. Inserisci l'URL del form Microsoft
-    2. Il QR code si aggiorna ogni {} secondi
-    3. Gli studenti scansionano il QR code
-    4. Il sistema valida il token server-side
-    5. Se valido, redirect al form
-    """.format(interval))
+    st.markdown("### 👨‍🎓 Registrazione Presenza Studente")
 
-    st.markdown("---")
-    st.markdown("**Autore**: Francesco De Rango  
-**UnICal** - 2025")
-
-# Validazione URL
-if form_url:
-    is_valid, message = validate_form_url(form_url)
-
-    if not is_valid:
-        st.error(f"❌ {message}")
-        st.stop()
-
-    st.success(f"✅ {message}")
-
-    # Genera token corrente
-    current_token = generate_token(interval)
-    qr_url = generate_qr_url(form_url, current_token)
-    qr_url_with_interval = f"{qr_url}&interval={interval}"
-
-    # Genera QR code
-    qr_img = generate_qr_code(qr_url_with_interval, qr_size)
-
-    # Layout a colonne
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        st.image(qr_img, caption="Scansiona questo QR code", use_container_width=True)
+        st.info("📱 Scansiona il QR code mostrato dal docente e inserisci il token visualizzato.")
+
+        # Form studente
+        with st.form("student_form"):
+            nome = st.text_input("Nome e Cognome *", placeholder="Mario Rossi")
+            matricola = st.text_input("Matricola *", placeholder="123456")
+            token_input = st.text_input(
+                "Token dal QR Code *", 
+                placeholder="Inserisci il numero dal QR code",
+                help="Il token è un numero che cambia ogni minuto"
+            )
+
+            submitted = st.form_submit_button("✅ Registra Presenza", use_container_width=True)
+
+            if submitted:
+                if not nome or not matricola or not token_input:
+                    st.error("⚠️ Compila tutti i campi obbligatori")
+                else:
+                    # Valida e salva presenza
+                    success, result = save_attendance(nome, matricola, token_input, period)
+
+                    if success:
+                        st.markdown("""
+                        <div class="success-box">
+                            <h3 style="color: #28a745; margin: 0;">✅ Presenza Registrata!</h3>
+                            <p style="margin: 10px 0 0 0;">La tua presenza è stata confermata con successo.</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                        # Mostra dettagli
+                        st.success(f"**Nome**: {result['student_name']}")
+                        st.success(f"**Matricola**: {result['student_id']}")
+                        st.success(f"**Orario**: {result['timestamp'].strftime('%H:%M:%S')}")
+                        st.info(f"ℹ️ {result['message']}")
+                    else:
+                        st.markdown("""
+                        <div class="error-box">
+                            <h3 style="color: #dc3545; margin: 0;">❌ Errore Registrazione</h3>
+                            <p style="margin: 10px 0 0 0;">Il token inserito non è valido o è scaduto.</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                        st.error(f"**Motivo**: {result['message']}")
+                        st.warning("💡 **Suggerimento**: Scansiona di nuovo il QR code e riprova immediatamente.")
 
     with col2:
-        time_remaining = get_time_remaining(interval)
+        st.markdown("#### ℹ️ Informazioni")
+        st.markdown("""
+        **Come funziona**:
+        1. Scansiona il QR code proiettato
+        2. Copia il token (numero)
+        3. Inserisci i tuoi dati
+        4. Click "Registra Presenza"
 
-        st.metric("⏱️ Tempo rimanente", f"{time_remaining}s")
-        st.metric("🔢 Token corrente", current_token)
+        **Importante**:
+        - Il token cambia ogni minuto
+        - Registra subito dopo scansione
+        - Usa la tua matricola vera
+        """)
+
+        # Mostra token corrente (solo per testing)
+        if st.checkbox("🔍 Mostra token corrente (debug)"):
+            current_token = generate_token(period)
+            st.code(current_token, language="text")
+            st.caption(f"Valido per {period} secondi")
+
+# ============================================
+# MODALITÀ DOCENTE
+# ============================================
+else:
+    st.markdown("---")
+    st.markdown("### 👨‍🏫 Generazione QR Code Docente")
+
+    col1, col2 = st.columns([3, 2])
+
+    with col1:
+        # Configurazione
+        st.markdown("#### ⚙️ Configurazione Lezione")
+
+        corso = st.text_input("Nome Corso", value="Reti di Calcolatori", placeholder="Es: Algoritmi e Strutture Dati")
+        aula = st.text_input("Aula", value="Aula Magna", placeholder="Es: Aula 1B - Cubo 31C")
+
+        if st.button("🚀 Avvia Sistema Presenze", use_container_width=True):
+            st.session_state['qr_active'] = True
+            st.session_state['start_time'] = datetime.now()
+
+        if st.button("⏹️ Ferma Sistema", use_container_width=True):
+            st.session_state['qr_active'] = False
+
+    with col2:
+        st.markdown("#### 📊 Statistiche")
+        if 'start_time' in st.session_state:
+            elapsed = (datetime.now() - st.session_state['start_time']).seconds
+            st.metric("⏱️ Tempo attivo", f"{elapsed // 60} min {elapsed % 60} sec")
+        st.metric("👥 Presenze registrate", "0")  # In produzione: query database
+        st.metric("🔄 Cicli completati", "0")
+
+    # Mostra QR Code se attivo
+    if st.session_state.get('qr_active', False):
+        st.markdown("---")
+        st.markdown("### 📱 QR Code Attivo")
+
+        # Genera token corrente
+        current_token = generate_token(period)
+
+        # QR Code URL (in produzione: URL vera del form)
+        qr_url = f"https://presenze-aula-unical.streamlit.app/?token={current_token}"
+
+        # Genera QR code usando API
+        qr_code_url = f"https://quickchart.io/qr?text={qr_url}&size=400&dark=2c3e50&light=ffffff"
+
+        # Layout QR code
+        col_qr1, col_qr2, col_qr3 = st.columns([1, 2, 1])
+
+        with col_qr2:
+            st.markdown(f"""
+            <div style="text-align: center; padding: 30px; background-color: #f8f9fa; border-radius: 15px; border: 3px solid #3498db;">
+                <h2 style="color: #2c3e50; margin-bottom: 20px;">Scansiona Questo Codice</h2>
+                <img src="{qr_code_url}" style="max-width: 100%; border-radius: 10px;"/>
+                <h1 style="color: #3498db; margin-top: 20px; font-family: monospace;">TOKEN: {current_token}</h1>
+                <p style="color: #7f8c8d; font-size: 18px; margin-top: 10px;">Valido per {period} secondi</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Countdown
+        st.markdown("---")
+        countdown_placeholder = st.empty()
+
+        # Calcola secondi rimanenti
+        now_sec = int(time.time())
+        elapsed_in_period = now_sec % period
+        remaining = period - elapsed_in_period
 
         # Progress bar
-        progress = (interval - time_remaining) / interval
+        progress = elapsed_in_period / period
         st.progress(progress)
 
-        st.info(f"🔄 Prossimo aggiornamento tra {time_remaining} secondi")
+        # Countdown text
+        if remaining > 10:
+            countdown_placeholder.success(f"⏱️ **Tempo rimanente**: {remaining} secondi")
+        else:
+            countdown_placeholder.error(f"⚠️ **Attenzione! Il codice scade tra**: {remaining} secondi")
 
-    # Info aggiuntive
-    st.markdown("---")
+        # Auto-refresh ogni 5 secondi
+        time.sleep(5)
+        st.rerun()
 
-    col_a, col_b, col_c = st.columns(3)
+    else:
+        st.info("👆 Clicca 'Avvia Sistema Presenze' per generare il QR code")
 
-    with col_a:
-        st.metric("📅 Data", datetime.now().strftime("%d/%m/%Y"))
-
-    with col_b:
-        st.metric("🕐 Ora", datetime.now().strftime("%H:%M:%S"))
-
-    with col_c:
-        st.metric("⏰ Intervallo", f"{interval}s")
-
-    # Download QR code
-    buf = BytesIO()
-    qr_img.save(buf, format="PNG")
-    buf.seek(0)
-
-    st.download_button(
-        label="📥 Scarica QR Code",
-        data=buf,
-        file_name=f"qr_presenze_{current_token}.png",
-        mime="image/png"
-    )
-
-    # Auto-refresh per aggiornare il QR code
-    st_autorefresh(interval=time_remaining * 1000, key="qr_refresh")
-
-else:
-    st.info("👈 Inserisci l'URL del form Microsoft nella sidebar per generare il QR code")
-
-    st.markdown("### 🔒 Caratteristiche di sicurezza")
-    st.markdown("""
-    - **Token temporizzati**: Ogni QR code è valido solo per un intervallo di tempo configurabile
-    - **Validazione server-side**: Il token viene verificato dal server prima del redirect
-    - **Grace period**: Token dell'intervallo precedente accettati per sincronizzazione
-    - **Whitelist domini**: Solo URL Microsoft Forms accettati
-    - **Anti-condivisione**: Screenshot/link condivisi diventano invalidi rapidamente
-    """)
-
-    st.markdown("### 🎯 Caso d'uso")
-    st.markdown("""
-    Sistema sviluppato per classi di 200+ studenti presso l'Università della Calabria.
-    Il QR code dinamico impedisce agli studenti di condividere il link con colleghi assenti.
-    """)
+# Footer
+st.markdown("---")
+st.markdown("""
+<div style="text-align: center; color: #7f8c8d; padding: 20px;">
+    <p><strong>Sistema Presenze Aula - Università della Calabria</strong></p>
+    <p>Sviluppato con ❤️ da Francesco De Rango</p>
+    <p>📧 <a href="mailto:francesco.derango@unical.it">francesco.derango@unical.it</a> | 
+    🔗 <a href="https://github.com/fdr-unical">GitHub</a></p>
+</div>
+""", unsafe_allow_html=True)
