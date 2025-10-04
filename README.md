@@ -215,5 +215,5 @@ Per domande, supporto o collaborazioni:
 
 ---
 
-Sviluppato con ❤️ da Francesco De Rango  
+Sviluppato da Francesco De Rango  
 In uso presso Università della Calabria
